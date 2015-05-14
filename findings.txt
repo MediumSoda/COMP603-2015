@@ -1,0 +1,14 @@
+CPython
+
+Identify which files/functions are responsible for each phase in the compiler source:
+tokenize: tokenizer.c in parse folder
+parse: paerser.c in parse folder
+AST: AST.py in the lib folder
+optimization: py_compile defines the level of optimization to use
+code generation: genobject.c in Objects folder
+
+On line 567 of listobject.c in the Objects folder. It's a clear_list function but says there is no guarantee the list will actually be empty at the end.
+
+Compiler contains more files compared to some of the other options
+
+Many places where errors are set to be ignored
