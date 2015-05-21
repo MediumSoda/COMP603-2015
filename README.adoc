@@ -11,7 +11,7 @@ cd ~/COMP603-2015
 git pull upstream master
 ----
 
-Do you have Visual Studio or http://sourceforge.net/projects/mingw/files/latest/download?source=files[GCC] installed?
+Do you have Visual Studio or http://sourceforge.net/projects/codeblocks/files/Binaries/13.12/Windows/codeblocks-13.12mingw-setup.exe[Code Blocks] or XCode installed?
 The starter code, `src/brainfuck.cpp`, is in `C++`.
 
 === Goal
@@ -47,7 +47,8 @@ Peek at the next character and figure out which production (rule) to apply based
 
 NOTE: Your parser *cannot* avoid using recursion or a stack (implicit or explicit). Don't even.
 
-Stuff child nodes into `Program` at the top-level, and inside a `Loop` elsewhere.
+Stuff child nodes into the appropriate `Container`.
+Thus, `Program` at the top-level, and inside a new `Loop` elsewhere.
 
 You've completed this lab if your program prints the *exact* same program as what your parser read in (including the loop brackets) without modifying `main`.
 In `main`, the program traverses the tree your parser built, using the `Printer` http://en.wikipedia.org/wiki/Visitor_pattern[visitor] to print Brainfuck code.
