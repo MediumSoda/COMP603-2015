@@ -1,6 +1,6 @@
 What does it mean for two sets to be disjoint?
-
+The two sets do not have any values in common.
 
 
 What is the union of two sets?
-
+The set of values in both sets.

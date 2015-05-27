@@ -9,22 +9,29 @@ brainfuck.exe helloworld.bf
 ----
 */
 
+#include "stdafx.h"
 #include <vector>
 #include <iostream>
 #include <fstream>
 
 using namespace std;
+char c;
+int arsize = 0;
+int arloc = 0;
+char var[3000] = { 0 };
+int streamloc;
+int loopamount;
 
 /**
- * Primitive Brainfuck commands
- */
-typedef enum { 
-    INCREMENT, // +
-    DECREMENT, // -
-    SHIFT_LEFT, // <
-    SHIFT_RIGHT, // >
-    INPUT, // ,
-    OUTPUT // .
+* Primitive Brainfuck commands
+*/
+typedef enum {
+	INCREMENT, // +
+	DECREMENT, // -
+	SHIFT_LEFT, // <
+	SHIFT_RIGHT, // >
+	INPUT, // ,
+	OUTPUT // .
 } Command;
 
 // Forward references. Silly C++!
@@ -33,136 +40,151 @@ class Loop;
 class Program;
 
 /**
- * Visits?!? Well, that'd indicate visitors!
- * A visitor is an interface that allows you to walk through a tree and do stuff.
- */
+* Visits?!? Well, that'd indicate visitors!
+* A visitor is an interface that allows you to walk through a tree and do stuff.
+*/
 class Visitor {
-    public:
-        virtual void visit(const CommandNode * leaf) = 0;
-        virtual void visit(const Loop * loop) = 0;
-        virtual void visit(const Program * program) = 0;
+public:
+	virtual void visit(const CommandNode * leaf) = 0;
+	virtual void visit(const Loop * loop) = 0;
+	virtual void visit(const Program * program) = 0;
 };
 
 /**
- * The Node class (like a Java abstract class) accepts visitors, but since it's pure virtual, we can't use it directly.
- */
+* The Node class (like a Java abstract class) accepts visitors, but since it's pure virtual, we can't use it directly.
+*/
 class Node {
-    public:
-        virtual void accept (Visitor *v) = 0;
+public:
+	virtual void accept(Visitor *v) = 0;
 };
 
 /**
- * CommandNode publicly extends Node to accept visitors.
- * CommandNode represents a leaf node with a primitive Brainfuck command in it.
- */
+* CommandNode publicly extends Node to accept visitors.
+* CommandNode represents a leaf node with a primitive Brainfuck command in it.
+*/
 class CommandNode : public Node {
-    public:
-        Command command;
-        CommandNode(char c) {
-            switch(c) {
-                case '+': command = INCREMENT; break;
-                case '-': command = DECREMENT; break;
-                case '<': command = SHIFT_LEFT; break;
-                case '>': command = SHIFT_RIGHT; break;
-                case ',': command = INPUT; break;
-                case '.': command = OUTPUT; break;
-            }
-        }
-        void accept (Visitor * v) {
-            v->visit(this);
-        }
+public:
+	Command command;
+	CommandNode(char c) {
+		switch (c) {
+		case '+': command = INCREMENT; break;
+		case '-': command = DECREMENT; break;
+		case '<': command = SHIFT_LEFT; break;
+		case '>': command = SHIFT_RIGHT; break;
+		case ',': command = INPUT; break;
+		case '.': command = OUTPUT; break;
+		}
+	}
+	void accept(Visitor * v) {
+		v->visit(this);
+	}
 };
 
-class Container: public Node {
-    public:
-        vector<Node*> children;
-        virtual void accept (Visitor * v) = 0;
+class Container : public Node {
+public:
+	vector<Node*> children;
+	virtual void accept(Visitor * v) = 0;
 };
 
 /**
- * Loop publicly extends Node to accept visitors.
- * Loop represents a loop in Brainfuck.
- */
+* Loop publicly extends Node to accept visitors.
+* Loop represents a loop in Brainfuck.
+*/
 class Loop : public Container {
-    public:
-        void accept (Visitor * v) {
-            v->visit(this);
-        }
+public:
+	void accept(Visitor * v) {
+		v->visit(this);
+	}
 };
 
 /**
- * Program is the root of a Brainfuck program abstract syntax tree.
- * Because Brainfuck is so primitive, the parse tree is the abstract syntax tree.
- */
+* Program is the root of a Brainfuck program abstract syntax tree.
+* Because Brainfuck is so primitive, the parse tree is the abstract syntax tree.
+*/
 class Program : public Container {
-    public:
-        void accept (Visitor * v) {
-            v->visit(this);
-        }
+public:
+	void accept(Visitor * v) {
+		v->visit(this);
+	}
 };
 
 /**
- * Read in the file by recursive descent.
- * Modify as necessary and add whatever functions you need to get things done.
- */
-void parse(fstream & file, Container * container) {
-    char c;
-    // How to peek at the next character
-    c = (char)file.peek();
-    // How to print out that character
-    cout << c;
-    // How to read a character from the file and advance to the next character
-    file >> c;
-    // How to print out that character
-    cout << c;
-    // How to insert a node into the container.
-    container->children.push_back(new CommandNode(c));
+* Read in the file by recursive descent.
+* Modify as necessary and add whatever functions you need to get things done.
+*/
+/*Answer goes here somehow, in about 20 lines?*/
+void parse(fstream & file, Container * container, int* loopstart, int loopnesting) {
+	while (file >> c){
+		if (c == '+'){
+			var[arloc] = var[arloc] + 1;
+		}else if (c == '-'){
+			var[arloc] = var[arloc] - 1;
+		}else if (c == '>'){
+			arloc = arloc + 1;
+		}else if (c == '<'){
+			arloc = arloc - 1;
+		}else if (c == '.'){
+			cout << var[arloc];
+		}else if (c == '['){
+			loopnesting++;
+			streamloc = file.tellg();
+			loopstart[loopnesting] = streamloc-1;
+		}else if (c == ']'){
+			if (var[arloc] > 0){
+				file.seekg(loopstart[loopnesting]);
+			}
+			loopnesting--;
+		}
+	}
 }
 
 /**
- * A printer for Brainfuck abstract syntax trees.
- * As a visitor, it will just print out the commands as is.
- * For Loops and the root Program node, it walks trough all the children.
- */
+* A printer for Brainfuck abstract syntax trees.
+* As a visitor, it will just print out the commands as is.
+* For Loops and the root Program node, it walks trough all the children.
+*/
 class Printer : public Visitor {
-    public:
-        void visit(const CommandNode * leaf) {
-            switch (leaf->command) {
-                case INCREMENT:   cout << '+'; break;
-                case DECREMENT:   cout << '-'; break;
-                case SHIFT_LEFT:  cout << '<'; break;
-                case SHIFT_RIGHT: cout << '>'; break;
-                case INPUT:       cout << ','; break;
-                case OUTPUT:      cout << '.'; break;
-            }
-        }
-        void visit(const Loop * loop) {
-            cout << '[';
-            for (vector<Node*>::const_iterator it = loop->children.begin(); it != loop->children.end(); ++it) {
-                (*it)->accept(this);
-            }
-            cout << ']';
-        }
-        void visit(const Program * program) {
-            for (vector<Node*>::const_iterator it = program->children.begin(); it != program->children.end(); ++it) {
-                (*it)->accept(this);
-            }
-            cout << '\n';
-        }
+public:
+	void visit(const CommandNode * leaf) {
+		switch (leaf->command) {
+		case INCREMENT:   cout << '+'; break;
+		case DECREMENT:   cout << '-'; break;
+		case SHIFT_LEFT:  cout << '<'; break;
+		case SHIFT_RIGHT: cout << '>'; break;
+		case INPUT:       cout << ','; break;
+		case OUTPUT:      cout << '.'; break;
+		}
+	}
+	void visit(const Loop * loop) {
+		cout << '[';
+		for (vector<Node*>::const_iterator it = loop->children.begin(); it != loop->children.end(); ++it) {
+			(*it)->accept(this);
+		}
+		cout << ']';
+	}
+	void visit(const Program * program) {
+		for (vector<Node*>::const_iterator it = program->children.begin(); it != program->children.end(); ++it) {
+			(*it)->accept(this);
+		}
+	}
 };
 
 int main(int argc, char *argv[]) {
-    fstream file;
-    Program program;
-    Printer printer;
-    if (argc == 1) {
-        cout << argv[0] << ": No input files." << endl;
-    } else if (argc > 1) {
-        for (int i = 1; i < argc; i++) {
-            file.open(argv[i], fstream::in);
-            parse(file, & program);
-            program.accept(&printer);
-            file.close();
-        }
-    }
+	fstream file;
+	Program program;
+	Printer printer;
+	int loopstart[100] = { 0 };
+	if (argc == 1) {
+		cout << argv[0] << ": No input files." << endl;
+	}
+	else if (argc > 1) {
+		std::fill_n(var, arsize, 0);
+		for (int i = 1; i < argc; i++) {
+			file.open(argv[i], fstream::in);
+			parse(file, &program, loopstart, 0);
+			program.accept(&printer);
+			file.close();
+		}
+	}
+	system ("PAUSE");
 }
