@@ -8,19 +8,12 @@ g++ -o brainfuck.exe brainfuck.cpp
 brainfuck.exe helloworld.bf
 ----
 */
-
 #include "stdafx.h"
 #include <vector>
 #include <iostream>
 #include <fstream>
 
 using namespace std;
-char c;
-int arsize = 0;
-int arloc = 0;
-char var[3000] = { 0 };
-int streamloc;
-int loopamount;
 
 /**
 * Primitive Brainfuck commands
@@ -112,28 +105,20 @@ public:
 * Read in the file by recursive descent.
 * Modify as necessary and add whatever functions you need to get things done.
 */
-/*Answer goes here somehow, in about 20 lines?*/
-void parse(fstream & file, Container * container, int* loopstart, int loopnesting) {
+void parse(fstream & file, Container * container, int location) {
+	char c;
+	Loop * loop;
 	while (file >> c){
-		if (c == '+'){
-			var[arloc] = var[arloc] + 1;
-		}else if (c == '-'){
-			var[arloc] = var[arloc] - 1;
-		}else if (c == '>'){
-			arloc = arloc + 1;
-		}else if (c == '<'){
-			arloc = arloc - 1;
-		}else if (c == '.'){
-			cout << var[arloc];
-		}else if (c == '['){
-			loopnesting++;
-			streamloc = file.tellg();
-			loopstart[loopnesting] = streamloc-1;
-		}else if (c == ']'){
-			if (var[arloc] > 0){
-				file.seekg(loopstart[loopnesting]);
-			}
-			loopnesting--;
+		if (c == '['){
+			loop = new Loop();
+			parse(file, loop, location);
+			container->children.push_back(loop);
+		}
+		else if (c == ']'){
+			return;
+		}
+		else {
+			container->children.push_back(new CommandNode(c));
 		}
 	}
 }
@@ -166,6 +151,38 @@ public:
 		for (vector<Node*>::const_iterator it = program->children.begin(); it != program->children.end(); ++it) {
 			(*it)->accept(this);
 		}
+		cout << '\n';
+	}
+};
+
+class Interpreter : public Visitor{
+	char var[3000];
+	int arloc;
+public:
+	void visit(const CommandNode * leaf) {
+		switch (leaf->command) {
+		case INCREMENT:   var[arloc] = var[arloc] + 1; break;
+		case DECREMENT:   var[arloc] = var[arloc] - 1; break;
+		case SHIFT_LEFT:  arloc = arloc - 1; break;
+		case SHIFT_RIGHT: arloc = arloc + 1; break;
+		case INPUT:       cin >> var[arloc]; break;
+		case OUTPUT:      cout << var[arloc]; break;
+		}
+	}
+	void visit(const Loop * loop) {
+		while (var[arloc]){
+			for (vector<Node*>::const_iterator it = loop->children.begin(); it != loop->children.end(); ++it) {
+				(*it)->accept(this);
+			}
+		}
+	}
+	void visit(const Program * program) {
+		memset(var, 0, 3000);
+		arloc = 0;
+		for (vector<Node*>::const_iterator it = program->children.begin(); it != program->children.end(); ++it) {
+			(*it)->accept(this);
+		}
+		cout << '\n';
 	}
 };
 
@@ -173,18 +190,18 @@ int main(int argc, char *argv[]) {
 	fstream file;
 	Program program;
 	Printer printer;
-	int loopstart[100] = { 0 };
+	Interpreter interpreter; 
+
 	if (argc == 1) {
 		cout << argv[0] << ": No input files." << endl;
 	}
 	else if (argc > 1) {
-		std::fill_n(var, arsize, 0);
 		for (int i = 1; i < argc; i++) {
 			file.open(argv[i], fstream::in);
-			parse(file, &program, loopstart, 0);
-			program.accept(&printer);
+			parse(file, &program, 0);
+			program.accept(&interpreter);
 			file.close();
 		}
 	}
-	system ("PAUSE");
+	system("PAUSE");
 }
